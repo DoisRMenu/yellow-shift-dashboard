@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Json } from '@/integrations/supabase/types';
 
 type Shift = {
   id: string;
@@ -20,7 +21,8 @@ type Shift = {
   inicio_turno: string;
   fim_turno: string | null;
   status_turno: string;
-  pausas: any[];
+  pausas: Json; // Changed from any[] to Json to match the Supabase types
+  timestamp_criacao?: string;
 };
 
 const Dashboard = () => {
