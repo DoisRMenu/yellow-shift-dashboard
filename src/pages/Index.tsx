@@ -11,11 +11,16 @@ const Index = () => {
         <MainSidebar />
         <main className="flex-1">
           <div className="container mx-auto px-4 py-8">
-            <div className="flex items-center mb-8">
-              <SidebarTrigger className="mr-4" />
-              <h1 className="text-4xl font-bold text-center bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
-                Sistema de Ponto - Administração
-              </h1>
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center">
+                <SidebarTrigger className="mr-4" />
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent">
+                  Sistema de Ponto - Administração
+                </h1>
+              </div>
+              <div className="text-sm text-gray-400">
+                Servidor 10
+              </div>
             </div>
             <div className="mb-12">
               <ShiftForm />
