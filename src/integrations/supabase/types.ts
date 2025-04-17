@@ -9,7 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      turnos_administradores: {
+        Row: {
+          cargo: string
+          fim_turno: string | null
+          id: string
+          inicio_turno: string
+          nome_personagem: string
+          pausas: Json | null
+          status_turno: string
+          timestamp_criacao: string | null
+        }
+        Insert: {
+          cargo: string
+          fim_turno?: string | null
+          id?: string
+          inicio_turno: string
+          nome_personagem: string
+          pausas?: Json | null
+          status_turno: string
+          timestamp_criacao?: string | null
+        }
+        Update: {
+          cargo?: string
+          fim_turno?: string | null
+          id?: string
+          inicio_turno?: string
+          nome_personagem?: string
+          pausas?: Json | null
+          status_turno?: string
+          timestamp_criacao?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
