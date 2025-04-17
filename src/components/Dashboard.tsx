@@ -14,6 +14,7 @@ import { ptBR } from 'date-fns/locale';
 import { Json } from '@/integrations/supabase/types';
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 type Shift = {
   id: string;
@@ -28,6 +29,17 @@ type Shift = {
 
 const Dashboard = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    // Update current time every second for real-time duration
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchShifts = async () => {
@@ -71,6 +83,18 @@ const Dashboard = () => {
     return format(new Date(date), "dd/MM/yyyy HH:mm:ss", { locale: ptBR });
   };
 
+  const calculateDuration = (startTime: string, endTime: string | null) => {
+    const start = new Date(startTime);
+    const end = endTime ? new Date(endTime) : currentTime;
+    
+    const diffInMilliseconds = end.getTime() - start.getTime();
+    const hours = Math.floor(diffInMilliseconds / (1000 * 60 * 60));
+    const minutes = Math.floor((diffInMilliseconds % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diffInMilliseconds % (1000 * 60)) / 1000);
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'ativo':
@@ -84,45 +108,55 @@ const Dashboard = () => {
     }
   };
 
+  const filteredShifts = shifts.filter(shift =>
+    shift.nome_personagem.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <Card className="p-6 bg-gray-800/50 border-gray-700">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-yellow-500">Dashboard de Turnos</h2>
-        <Badge variant="outline" className="text-yellow-500 border-yellow-500/50">
-          {shifts.length} turnos registrados
-        </Badge>
-      </div>
-      
-      <div className="rounded-lg border border-gray-700 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-gray-700 hover:bg-transparent">
-              <TableHead className="text-yellow-500">Nome</TableHead>
-              <TableHead className="text-yellow-500">Cargo</TableHead>
-              <TableHead className="text-yellow-500">Início</TableHead>
-              <TableHead className="text-yellow-500">Status</TableHead>
-              <TableHead className="text-yellow-500 text-right">Duração</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {shifts.map((shift) => (
-              <TableRow key={shift.id} className="border-gray-700">
-                <TableCell className="font-medium">{shift.nome_personagem}</TableCell>
-                <TableCell>{shift.cargo}</TableCell>
-                <TableCell>{formatDateTime(shift.inicio_turno)}</TableCell>
-                <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
-                <TableCell className="text-right">
-                  {shift.fim_turno 
-                    ? format(
-                        new Date(new Date(shift.fim_turno).getTime() - new Date(shift.inicio_turno).getTime()),
-                        "HH:mm:ss"
-                      )
-                    : "Em andamento"}
-                </TableCell>
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-yellow-500">Dashboard de Turnos</h2>
+          <Badge variant="outline" className="text-yellow-500 border-yellow-500/50">
+            {filteredShifts.length} turnos registrados
+          </Badge>
+        </div>
+
+        <div className="w-full max-w-sm">
+          <Input
+            placeholder="Pesquisar por nome..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400"
+          />
+        </div>
+        
+        <div className="rounded-lg border border-gray-700 overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-gray-700 hover:bg-transparent">
+                <TableHead className="text-yellow-500">Nome</TableHead>
+                <TableHead className="text-yellow-500">Cargo</TableHead>
+                <TableHead className="text-yellow-500">Início</TableHead>
+                <TableHead className="text-yellow-500">Status</TableHead>
+                <TableHead className="text-yellow-500 text-right">Duração</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredShifts.map((shift) => (
+                <TableRow key={shift.id} className="border-gray-700">
+                  <TableCell className="font-medium text-white">{shift.nome_personagem}</TableCell>
+                  <TableCell className="text-white">{shift.cargo}</TableCell>
+                  <TableCell className="text-white">{formatDateTime(shift.inicio_turno)}</TableCell>
+                  <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
+                  <TableCell className="text-right text-white">
+                    {calculateDuration(shift.inicio_turno, shift.fim_turno)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </Card>
   );
