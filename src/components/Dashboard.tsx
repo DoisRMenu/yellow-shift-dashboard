@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -13,6 +12,8 @@ import {
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Json } from '@/integrations/supabase/types';
+import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 
 type Shift = {
   id: string;
@@ -21,7 +22,7 @@ type Shift = {
   inicio_turno: string;
   fim_turno: string | null;
   status_turno: string;
-  pausas: Json; // Changed from any[] to Json to match the Supabase types
+  pausas: Json;
   timestamp_criacao?: string;
 };
 
@@ -45,7 +46,6 @@ const Dashboard = () => {
 
     fetchShifts();
 
-    // Subscribe to realtime changes
     const channel = supabase
       .channel('shifts')
       .on(
@@ -71,40 +71,60 @@ const Dashboard = () => {
     return format(new Date(date), "dd/MM/yyyy HH:mm:ss", { locale: ptBR });
   };
 
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'ativo':
+        return <Badge className="bg-green-500/20 text-green-500 hover:bg-green-500/30">Ativo</Badge>;
+      case 'pausado':
+        return <Badge className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30">Pausado</Badge>;
+      case 'encerrado':
+        return <Badge className="bg-red-500/20 text-red-500 hover:bg-red-500/30">Encerrado</Badge>;
+      default:
+        return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-6 text-yellow-500">Dashboard de Turnos</h2>
-      <div className="rounded-lg border border-gray-700 bg-gray-800">
+    <Card className="p-6 bg-gray-800/50 border-gray-700">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-yellow-500">Dashboard de Turnos</h2>
+        <Badge variant="outline" className="text-yellow-500 border-yellow-500/50">
+          {shifts.length} turnos registrados
+        </Badge>
+      </div>
+      
+      <div className="rounded-lg border border-gray-700 overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-gray-700">
+            <TableRow className="border-gray-700 hover:bg-transparent">
               <TableHead className="text-yellow-500">Nome</TableHead>
               <TableHead className="text-yellow-500">Cargo</TableHead>
               <TableHead className="text-yellow-500">Início</TableHead>
               <TableHead className="text-yellow-500">Status</TableHead>
+              <TableHead className="text-yellow-500 text-right">Duração</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {shifts.map((shift) => (
               <TableRow key={shift.id} className="border-gray-700">
-                <TableCell>{shift.nome_personagem}</TableCell>
+                <TableCell className="font-medium">{shift.nome_personagem}</TableCell>
                 <TableCell>{shift.cargo}</TableCell>
                 <TableCell>{formatDateTime(shift.inicio_turno)}</TableCell>
-                <TableCell>
-                  <span className={`px-2 py-1 rounded-full text-sm ${
-                    shift.status_turno === 'ativo' ? 'bg-green-500/20 text-green-500' :
-                    shift.status_turno === 'pausado' ? 'bg-yellow-500/20 text-yellow-500' :
-                    'bg-red-500/20 text-red-500'
-                  }`}>
-                    {shift.status_turno.charAt(0).toUpperCase() + shift.status_turno.slice(1)}
-                  </span>
+                <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
+                <TableCell className="text-right">
+                  {shift.fim_turno 
+                    ? format(
+                        new Date(new Date(shift.fim_turno).getTime() - new Date(shift.inicio_turno).getTime()),
+                        "HH:mm:ss"
+                      )
+                    : "Em andamento"}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </div>
-    </div>
+    </Card>
   );
 };
 

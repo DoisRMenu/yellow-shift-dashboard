@@ -11,11 +11,14 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Card } from "@/components/ui/card";
+import { Pause, Play, StopCircle } from "lucide-react";
 
 const ShiftForm = () => {
   const [nome, setNome] = useState('');
   const [cargo, setCargo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeShift, setActiveShift] = useState<any>(null);
 
   const handleStartShift = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,16 +29,20 @@ const ShiftForm = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('turnos_administradores')
         .insert({
           nome_personagem: nome,
           cargo: cargo,
           inicio_turno: new Date().toISOString(),
-          status_turno: 'ativo'
-        });
+          status_turno: 'ativo',
+          pausas: []
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+      setActiveShift(data);
       toast.success("Turno iniciado com sucesso!");
     } catch (error) {
       toast.error("Erro ao iniciar o turno");
@@ -45,34 +52,146 @@ const ShiftForm = () => {
     }
   };
 
+  const handlePauseShift = async () => {
+    if (!activeShift) return;
+
+    setLoading(true);
+    try {
+      const pausas = [...(activeShift.pausas || [])];
+      const isPaused = activeShift.status_turno === 'pausado';
+      
+      if (isPaused) {
+        pausas[pausas.length - 1].fim = new Date().toISOString();
+      } else {
+        pausas.push({
+          inicio: new Date().toISOString(),
+          fim: null
+        });
+      }
+
+      const { data, error } = await supabase
+        .from('turnos_administradores')
+        .update({
+          status_turno: isPaused ? 'ativo' : 'pausado',
+          pausas: pausas
+        })
+        .eq('id', activeShift.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setActiveShift(data);
+      toast.success(isPaused ? "Turno retomado!" : "Turno pausado!");
+    } catch (error) {
+      toast.error("Erro ao atualizar o turno");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEndShift = async () => {
+    if (!activeShift) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('turnos_administradores')
+        .update({
+          status_turno: 'encerrado',
+          fim_turno: new Date().toISOString()
+        })
+        .eq('id', activeShift.id);
+
+      if (error) throw error;
+      setActiveShift(null);
+      setNome('');
+      setCargo('');
+      toast.success("Turno encerrado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao encerrar o turno");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (activeShift) {
+    return (
+      <Card className="p-6 bg-gray-800/50 border-gray-700">
+        <div className="flex flex-col space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-medium">{activeShift.nome_personagem}</h3>
+              <p className="text-sm text-gray-400">{activeShift.cargo}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePauseShift}
+                disabled={loading}
+                className="gap-2"
+              >
+                {activeShift.status_turno === 'pausado' ? (
+                  <>
+                    <Play className="h-4 w-4" />
+                    Retomar
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-4 w-4" />
+                    Pausar
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleEndShift}
+                disabled={loading}
+                className="gap-2"
+              >
+                <StopCircle className="h-4 w-4" />
+                Encerrar
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <form onSubmit={handleStartShift} className="space-y-6 w-full max-w-md mx-auto">
-      <div className="space-y-4">
-        <Input
-          placeholder="Nome do Personagem"
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          className="bg-gray-800 border-gray-700"
-        />
-        
-        <Select value={cargo} onValueChange={setCargo}>
-          <SelectTrigger className="bg-gray-800 border-gray-700">
-            <SelectValue placeholder="Selecione o cargo" />
-          </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700">
-            <SelectItem value="Administrador Assistente">Administrador Assistente</SelectItem>
-            <SelectItem value="Administrador Nível 2">Administrador Nível 2</SelectItem>
-          </SelectContent>
-        </Select>
+      <Card className="p-6 bg-gray-800/50 border-gray-700">
+        <div className="space-y-4">
+          <Input
+            placeholder="Nome do Personagem"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            className="bg-gray-800 border-gray-700"
+          />
+          
+          <Select value={cargo} onValueChange={setCargo}>
+            <SelectTrigger className="bg-gray-800 border-gray-700">
+              <SelectValue placeholder="Selecione o cargo" />
+            </SelectTrigger>
+            <SelectContent className="bg-gray-800 border-gray-700">
+              <SelectItem value="Administrador Assistente">Administrador Assistente</SelectItem>
+              <SelectItem value="Administrador Nível 2">Administrador Nível 2</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Button 
-          type="submit" 
-          disabled={loading}
-          className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black"
-        >
-          {loading ? "Iniciando..." : "Iniciar Turno"}
-        </Button>
-      </div>
+          <Button 
+            type="submit" 
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black"
+          >
+            {loading ? "Iniciando..." : "Iniciar Turno"}
+          </Button>
+        </div>
+      </Card>
     </form>
   );
 };
