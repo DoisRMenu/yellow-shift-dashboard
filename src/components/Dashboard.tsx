@@ -15,10 +15,6 @@ import { Json } from '@/integrations/supabase/types';
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "./ui/button";
-import { useAuth } from "@/contexts/AuthContext";
-import { LoginDialog } from "./LoginDialog";
-import { toast } from "sonner";
 
 type Shift = {
   id: string;
@@ -35,9 +31,9 @@ const Dashboard = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
-  const { isDeveloper, isAuthenticated } = useAuth();
 
   useEffect(() => {
+    // Update current time every second for real-time duration
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -46,26 +42,18 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    
     const fetchShifts = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('turnos_administradores')
-          .select('*')
-          .order('inicio_turno', { ascending: false });
+      const { data, error } = await supabase
+        .from('turnos_administradores')
+        .select('*')
+        .order('inicio_turno', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching shifts:', error);
-          toast.error('Erro ao buscar turnos');
-          return;
-        }
-
-        setShifts(data || []);
-      } catch (err) {
-        console.error('Exception fetching shifts:', err);
-        toast.error('Erro ao buscar turnos');
+      if (error) {
+        console.error('Error fetching shifts:', error);
+        return;
       }
+
+      setShifts(data || []);
     };
 
     fetchShifts();
@@ -89,32 +77,7 @@ const Dashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAuthenticated]);
-
-  const handleDelete = async (id: string) => {
-    if (!isDeveloper) {
-      toast.error('Você não tem permissão para excluir turnos.');
-      return;
-    }
-    
-    try {
-      const { error } = await supabase
-        .from('turnos_administradores')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error deleting shift:', error);
-        toast.error('Erro ao excluir o turno: ' + error.message);
-        return;
-      }
-      
-      toast.success('Turno excluído com sucesso!');
-    } catch (error) {
-      console.error('Exception deleting shift:', error);
-      toast.error('Erro ao excluir o turno.');
-    }
-  };
+  }, []);
 
   const formatDateTime = (date: string) => {
     return format(new Date(date), "dd/MM/yyyy HH:mm:ss", { locale: ptBR });
@@ -153,70 +116,47 @@ const Dashboard = () => {
     <Card className="p-6 bg-gray-800/50 border-gray-700">
       <div className="flex flex-col space-y-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold text-yellow-500">Dashboard de Turnos</h2>
-            <LoginDialog />
-          </div>
+          <h2 className="text-2xl font-bold text-yellow-500">Dashboard de Turnos</h2>
           <Badge variant="outline" className="text-yellow-500 border-yellow-500/50">
             {filteredShifts.length} turnos registrados
           </Badge>
         </div>
 
-        {isAuthenticated ? (
-          <>
-            <div className="w-full max-w-sm">
-              <Input
-                placeholder="Pesquisar por nome..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400"
-              />
-            </div>
-            
-            <div className="rounded-lg border border-gray-700 overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-700 hover:bg-transparent">
-                    <TableHead className="text-yellow-500">Nome</TableHead>
-                    <TableHead className="text-yellow-500">Cargo</TableHead>
-                    <TableHead className="text-yellow-500">Início</TableHead>
-                    <TableHead className="text-yellow-500">Status</TableHead>
-                    <TableHead className="text-yellow-500 text-right">Duração</TableHead>
-                    {isDeveloper && <TableHead className="text-yellow-500">Ações</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredShifts.map((shift) => (
-                    <TableRow key={shift.id} className="border-gray-700">
-                      <TableCell className="font-medium text-white">{shift.nome_personagem}</TableCell>
-                      <TableCell className="text-white">{shift.cargo}</TableCell>
-                      <TableCell className="text-white">{formatDateTime(shift.inicio_turno)}</TableCell>
-                      <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
-                      <TableCell className="text-right text-white">
-                        {calculateDuration(shift.inicio_turno, shift.fim_turno)}
-                      </TableCell>
-                      {isDeveloper && (
-                        <TableCell>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDelete(shift.id)}
-                          >
-                            Excluir
-                          </Button>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <p className="text-gray-400">Faça login para visualizar os turnos</p>
-          </div>
-        )}
+        <div className="w-full max-w-sm">
+          <Input
+            placeholder="Pesquisar por nome..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400"
+          />
+        </div>
+        
+        <div className="rounded-lg border border-gray-700 overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="border-gray-700 hover:bg-transparent">
+                <TableHead className="text-yellow-500">Nome</TableHead>
+                <TableHead className="text-yellow-500">Cargo</TableHead>
+                <TableHead className="text-yellow-500">Início</TableHead>
+                <TableHead className="text-yellow-500">Status</TableHead>
+                <TableHead className="text-yellow-500 text-right">Duração</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredShifts.map((shift) => (
+                <TableRow key={shift.id} className="border-gray-700">
+                  <TableCell className="font-medium text-white">{shift.nome_personagem}</TableCell>
+                  <TableCell className="text-white">{shift.cargo}</TableCell>
+                  <TableCell className="text-white">{formatDateTime(shift.inicio_turno)}</TableCell>
+                  <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
+                  <TableCell className="text-right text-white">
+                    {calculateDuration(shift.inicio_turno, shift.fim_turno)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </Card>
   );
