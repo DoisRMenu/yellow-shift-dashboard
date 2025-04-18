@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -15,6 +14,9 @@ import { Json } from '@/integrations/supabase/types';
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 type Shift = {
   id: string;
@@ -33,7 +35,6 @@ const Dashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    // Update current time every second for real-time duration
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -108,6 +109,24 @@ const Dashboard = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('turnos_administradores')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        toast.error("Erro ao excluir turno");
+        return;
+      }
+
+      toast.success("Turno excluído com sucesso");
+    } catch (error) {
+      toast.error("Erro ao excluir turno");
+    }
+  };
+
   const filteredShifts = shifts.filter(shift =>
     shift.nome_personagem.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -140,6 +159,7 @@ const Dashboard = () => {
                 <TableHead className="text-yellow-500">Início</TableHead>
                 <TableHead className="text-yellow-500">Status</TableHead>
                 <TableHead className="text-yellow-500 text-right">Duração</TableHead>
+                <TableHead className="text-yellow-500 w-[100px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -151,6 +171,16 @@ const Dashboard = () => {
                   <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
                   <TableCell className="text-right text-white">
                     {calculateDuration(shift.inicio_turno, shift.fim_turno)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(shift.id)}
+                      className="w-full"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
