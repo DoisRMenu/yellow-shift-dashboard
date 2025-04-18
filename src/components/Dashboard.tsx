@@ -69,8 +69,7 @@ const Dashboard = () => {
           schema: 'public',
           table: 'turnos_administradores'
         },
-        (payload) => {
-          console.log('Change received!', payload);
+        () => {
           fetchShifts();
         }
       )
@@ -82,25 +81,28 @@ const Dashboard = () => {
   }, []);
 
   const handleDeleteShift = async (shiftId: string) => {
-    const { error } = await supabase
-      .from('turnos_administradores')
-      .delete()
-      .eq('id', shiftId);
+    try {
+      const { error } = await supabase
+        .from('turnos_administradores')
+        .delete()
+        .eq('id', shiftId);
 
-    if (error) {
+      if (error) throw error;
+
+      toast({
+        title: "Turno excluído",
+        description: "O turno foi excluído com sucesso.",
+      });
+
+      setShifts(shifts.filter(shift => shift.id !== shiftId));
+    } catch (error) {
       toast({
         variant: "destructive",
         title: "Erro ao excluir turno",
         description: "Não foi possível excluir o turno. Tente novamente.",
       });
       console.error('Error deleting shift:', error);
-      return;
     }
-
-    toast({
-      title: "Turno excluído",
-      description: "O turno foi excluído com sucesso.",
-    });
   };
 
   const formatDateTime = (date: string) => {
@@ -137,16 +139,16 @@ const Dashboard = () => {
   );
 
   return (
-    <Card className="p-6 bg-gray-800/50 border-gray-700">
+    <Card className="p-4 md:p-6 bg-gray-800/50 border-gray-700">
       <div className="flex flex-col space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-yellow-500">Dashboard de Turnos</h2>
-          <Badge variant="outline" className="text-yellow-500 border-yellow-500/50">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <h2 className="text-xl md:text-2xl font-bold text-yellow-500">Dashboard de Turnos</h2>
+          <Badge variant="outline" className="text-yellow-500 border-yellow-500/50 self-start md:self-auto">
             {filteredShifts.length} turnos registrados
           </Badge>
         </div>
 
-        <div className="w-full max-w-sm">
+        <div className="w-full md:max-w-sm">
           <Input
             placeholder="Pesquisar por nome..."
             value={searchQuery}
@@ -155,26 +157,26 @@ const Dashboard = () => {
           />
         </div>
         
-        <div className="rounded-lg border border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto rounded-lg border border-gray-700">
           <Table>
             <TableHeader>
               <TableRow className="border-gray-700 hover:bg-transparent">
                 <TableHead className="text-yellow-500">Nome</TableHead>
-                <TableHead className="text-yellow-500">Cargo</TableHead>
+                <TableHead className="text-yellow-500 hidden md:table-cell">Cargo</TableHead>
                 <TableHead className="text-yellow-500">Início</TableHead>
                 <TableHead className="text-yellow-500">Status</TableHead>
-                <TableHead className="text-yellow-500 text-right">Duração</TableHead>
-                <TableHead className="text-yellow-500 w-[100px]">Ações</TableHead>
+                <TableHead className="text-yellow-500 text-right hidden md:table-cell">Duração</TableHead>
+                <TableHead className="text-yellow-500 w-[60px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredShifts.map((shift) => (
                 <TableRow key={shift.id} className="border-gray-700">
                   <TableCell className="font-medium text-white">{shift.nome_personagem}</TableCell>
-                  <TableCell className="text-white">{shift.cargo}</TableCell>
+                  <TableCell className="text-white hidden md:table-cell">{shift.cargo}</TableCell>
                   <TableCell className="text-white">{formatDateTime(shift.inicio_turno)}</TableCell>
                   <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
-                  <TableCell className="text-right text-white">
+                  <TableCell className="text-right text-white hidden md:table-cell">
                     {calculateDuration(shift.inicio_turno, shift.fim_turno)}
                   </TableCell>
                   <TableCell>
