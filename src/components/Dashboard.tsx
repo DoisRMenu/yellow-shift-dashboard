@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -15,6 +14,9 @@ import { Json } from '@/integrations/supabase/types';
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type Shift = {
   id: string;
@@ -31,9 +33,9 @@ const Dashboard = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
+  const { toast } = useToast();
 
   useEffect(() => {
-    // Update current time every second for real-time duration
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
@@ -78,6 +80,28 @@ const Dashboard = () => {
       supabase.removeChannel(channel);
     };
   }, []);
+
+  const handleDeleteShift = async (shiftId: string) => {
+    const { error } = await supabase
+      .from('turnos_administradores')
+      .delete()
+      .eq('id', shiftId);
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir turno",
+        description: "Não foi possível excluir o turno. Tente novamente.",
+      });
+      console.error('Error deleting shift:', error);
+      return;
+    }
+
+    toast({
+      title: "Turno excluído",
+      description: "O turno foi excluído com sucesso.",
+    });
+  };
 
   const formatDateTime = (date: string) => {
     return format(new Date(date), "dd/MM/yyyy HH:mm:ss", { locale: ptBR });
@@ -140,6 +164,7 @@ const Dashboard = () => {
                 <TableHead className="text-yellow-500">Início</TableHead>
                 <TableHead className="text-yellow-500">Status</TableHead>
                 <TableHead className="text-yellow-500 text-right">Duração</TableHead>
+                <TableHead className="text-yellow-500 w-[100px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -151,6 +176,17 @@ const Dashboard = () => {
                   <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
                   <TableCell className="text-right text-white">
                     {calculateDuration(shift.inicio_turno, shift.fim_turno)}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDeleteShift(shift.id)}
+                      className="hover:bg-red-500/20 hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      <span className="sr-only">Excluir turno</span>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
