@@ -17,7 +17,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isDeveloper, setIsDeveloper] = useState(false);
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, !!session);
       setIsAuthenticated(!!session);
       if (session?.user) {
         checkUserRole(session.user.id);
@@ -26,22 +28,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Initial session check:", !!session);
       setIsAuthenticated(!!session);
       if (session?.user) {
         checkUserRole(session.user.id);
       }
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const checkUserRole = async (userId: string) => {
-    const { data } = await supabase
-      .from('user_credentials')
-      .select('role')
-      .eq('id', userId)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from('user_credentials')
+        .select('role')
+        .eq('id', userId)
+        .maybeSingle();
 
-    setIsDeveloper(data?.role === 'developer');
+      if (error) {
+        console.error('Error checking user role:', error);
+        return;
+      }
+
+      console.log("User role data:", data);
+      setIsDeveloper(data?.role === 'developer');
+    } catch (error) {
+      console.error('Exception checking user role:', error);
+    }
   };
 
   const login = async (username: string, password: string) => {
@@ -51,11 +67,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        toast.error('Erro ao fazer login. Verifique suas credenciais.');
+        throw error;
+      }
+      
       toast.success('Login realizado com sucesso!');
     } catch (error) {
       console.error('Error logging in:', error);
-      toast.error('Erro ao fazer login. Verifique suas credenciais.');
       throw error;
     }
   };

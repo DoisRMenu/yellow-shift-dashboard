@@ -10,12 +10,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export function LoginDialog() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const { login, isAuthenticated, logout } = useAuth();
+  const { login, isAuthenticated, logout, isDeveloper } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,15 +26,20 @@ export function LoginDialog() {
       setUsername("");
       setPassword("");
     } catch (error) {
-      // Error is handled in the login function
+      console.error("Login error:", error);
     }
   };
 
   if (isAuthenticated) {
     return (
-      <Button variant="outline" onClick={logout}>
-        Sair
-      </Button>
+      <div className="flex gap-2 items-center">
+        {isDeveloper && (
+          <span className="text-sm text-yellow-500">Administrador</span>
+        )}
+        <Button variant="outline" onClick={logout}>
+          Sair
+        </Button>
+      </div>
     );
   }
 

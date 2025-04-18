@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -34,7 +35,7 @@ const Dashboard = () => {
   const [shifts, setShifts] = useState<Shift[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
-  const { isDeveloper } = useAuth();
+  const { isDeveloper, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -45,18 +46,26 @@ const Dashboard = () => {
   }, []);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
     const fetchShifts = async () => {
-      const { data, error } = await supabase
-        .from('turnos_administradores')
-        .select('*')
-        .order('inicio_turno', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('turnos_administradores')
+          .select('*')
+          .order('inicio_turno', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching shifts:', error);
-        return;
+        if (error) {
+          console.error('Error fetching shifts:', error);
+          toast.error('Erro ao buscar turnos');
+          return;
+        }
+
+        setShifts(data || []);
+      } catch (err) {
+        console.error('Exception fetching shifts:', err);
+        toast.error('Erro ao buscar turnos');
       }
-
-      setShifts(data || []);
     };
 
     fetchShifts();
@@ -80,19 +89,29 @@ const Dashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const handleDelete = async (id: string) => {
+    if (!isDeveloper) {
+      toast.error('Você não tem permissão para excluir turnos.');
+      return;
+    }
+    
     try {
       const { error } = await supabase
         .from('turnos_administradores')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting shift:', error);
+        toast.error('Erro ao excluir o turno: ' + error.message);
+        return;
+      }
+      
       toast.success('Turno excluído com sucesso!');
     } catch (error) {
-      console.error('Error deleting shift:', error);
+      console.error('Exception deleting shift:', error);
       toast.error('Erro ao excluir o turno.');
     }
   };
@@ -143,53 +162,61 @@ const Dashboard = () => {
           </Badge>
         </div>
 
-        <div className="w-full max-w-sm">
-          <Input
-            placeholder="Pesquisar por nome..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400"
-          />
-        </div>
-        
-        <div className="rounded-lg border border-gray-700 overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-700 hover:bg-transparent">
-                <TableHead className="text-yellow-500">Nome</TableHead>
-                <TableHead className="text-yellow-500">Cargo</TableHead>
-                <TableHead className="text-yellow-500">Início</TableHead>
-                <TableHead className="text-yellow-500">Status</TableHead>
-                <TableHead className="text-yellow-500 text-right">Duração</TableHead>
-                {isDeveloper && <TableHead className="text-yellow-500">Ações</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredShifts.map((shift) => (
-                <TableRow key={shift.id} className="border-gray-700">
-                  <TableCell className="font-medium text-white">{shift.nome_personagem}</TableCell>
-                  <TableCell className="text-white">{shift.cargo}</TableCell>
-                  <TableCell className="text-white">{formatDateTime(shift.inicio_turno)}</TableCell>
-                  <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
-                  <TableCell className="text-right text-white">
-                    {calculateDuration(shift.inicio_turno, shift.fim_turno)}
-                  </TableCell>
-                  {isDeveloper && (
-                    <TableCell>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(shift.id)}
-                      >
-                        Excluir
-                      </Button>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+        {isAuthenticated ? (
+          <>
+            <div className="w-full max-w-sm">
+              <Input
+                placeholder="Pesquisar por nome..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400"
+              />
+            </div>
+            
+            <div className="rounded-lg border border-gray-700 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-gray-700 hover:bg-transparent">
+                    <TableHead className="text-yellow-500">Nome</TableHead>
+                    <TableHead className="text-yellow-500">Cargo</TableHead>
+                    <TableHead className="text-yellow-500">Início</TableHead>
+                    <TableHead className="text-yellow-500">Status</TableHead>
+                    <TableHead className="text-yellow-500 text-right">Duração</TableHead>
+                    {isDeveloper && <TableHead className="text-yellow-500">Ações</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredShifts.map((shift) => (
+                    <TableRow key={shift.id} className="border-gray-700">
+                      <TableCell className="font-medium text-white">{shift.nome_personagem}</TableCell>
+                      <TableCell className="text-white">{shift.cargo}</TableCell>
+                      <TableCell className="text-white">{formatDateTime(shift.inicio_turno)}</TableCell>
+                      <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
+                      <TableCell className="text-right text-white">
+                        {calculateDuration(shift.inicio_turno, shift.fim_turno)}
+                      </TableCell>
+                      {isDeveloper && (
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(shift.id)}
+                          >
+                            Excluir
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <p className="text-gray-400">Faça login para visualizar os turnos</p>
+          </div>
+        )}
       </div>
     </Card>
   );
