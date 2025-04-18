@@ -6,7 +6,7 @@ import { toast } from "sonner";
 type AuthContextType = {
   isAuthenticated: boolean;
   isDeveloper: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -60,21 +60,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: `${username}@admin.com`,
+      console.log(`Attempting login with email: ${email}`);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
         password,
       });
 
       if (error) {
+        console.error('Error logging in:', error);
         toast.error('Erro ao fazer login. Verifique suas credenciais.');
         throw error;
       }
       
-      toast.success('Login realizado com sucesso!');
+      if (data?.user) {
+        console.log('Login successful:', data.user);
+        toast.success('Login realizado com sucesso!');
+      } else {
+        // This should not happen, but just in case
+        console.error('Login failed: No user data returned');
+        toast.error('Erro ao fazer login. Verifique suas credenciais.');
+        throw new Error('Login failed: No user data returned');
+      }
     } catch (error) {
-      console.error('Error logging in:', error);
+      console.error('Exception during login:', error);
       throw error;
     }
   };
