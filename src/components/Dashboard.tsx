@@ -44,8 +44,9 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const fetchShifts = async () => {
+  // Função para buscar turnos do Supabase
+  const fetchShifts = async () => {
+    try {
       const { data, error } = await supabase
         .from('turnos_administradores')
         .select('*')
@@ -56,13 +57,20 @@ const Dashboard = () => {
         return;
       }
 
+      console.log('Turnos buscados:', data?.length);
       setShifts(data || []);
-    };
+    } catch (err) {
+      console.error('Erro ao buscar turnos:', err);
+    }
+  };
 
+  useEffect(() => {
+    // Busca inicial dos turnos
     fetchShifts();
 
+    // Configurar subscription para atualizações em tempo real
     const channel = supabase
-      .channel('shifts')
+      .channel('shifts-changes')
       .on(
         'postgres_changes',
         {
@@ -70,12 +78,27 @@ const Dashboard = () => {
           schema: 'public',
           table: 'turnos_administradores'
         },
-        () => {
-          fetchShifts();
+        (payload) => {
+          console.log('Evento real-time recebido:', payload.eventType, payload);
+          
+          // Atualizar a lista de turnos com base no tipo de evento
+          if (payload.eventType === 'DELETE') {
+            // Remove o turno excluído da lista
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              setShifts(currentShifts => 
+                currentShifts.filter(shift => shift.id !== deletedId)
+              );
+            }
+          } else {
+            // Para INSERT ou UPDATE, buscar todos os turnos novamente
+            fetchShifts();
+          }
         }
       )
       .subscribe();
 
+    // Limpar subscription quando componente desmontar
     return () => {
       supabase.removeChannel(channel);
     };
@@ -83,6 +106,7 @@ const Dashboard = () => {
 
   const handleDeleteShift = async (shiftId: string) => {
     try {
+      // Executar a exclusão no Supabase
       const { error } = await supabase
         .from('turnos_administradores')
         .delete()
@@ -90,8 +114,8 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // Atualiza o estado local imediatamente após a exclusão bem-sucedida
-      setShifts(shifts.filter(shift => shift.id !== shiftId));
+      // Atualizar o estado local imediatamente após a exclusão bem-sucedida
+      setShifts(currentShifts => currentShifts.filter(shift => shift.id !== shiftId));
       
       toast({
         title: "Turno excluído",
