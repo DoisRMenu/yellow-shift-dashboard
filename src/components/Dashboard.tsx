@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -89,12 +90,13 @@ const Dashboard = () => {
 
       if (error) throw error;
 
+      // Atualiza o estado local imediatamente após a exclusão bem-sucedida
+      setShifts(shifts.filter(shift => shift.id !== shiftId));
+      
       toast({
         title: "Turno excluído",
         description: "O turno foi excluído com sucesso.",
       });
-
-      setShifts(shifts.filter(shift => shift.id !== shiftId));
     } catch (error) {
       toast({
         variant: "destructive",
