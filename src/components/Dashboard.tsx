@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -47,7 +46,6 @@ const Dashboard = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Função para buscar turnos do Supabase
   const fetchShifts = async () => {
     try {
       const { data, error } = await supabase
@@ -68,10 +66,8 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    // Busca inicial dos turnos
     fetchShifts();
 
-    // Configurar subscription para atualizações em tempo real
     const channel = supabase
       .channel('shifts-changes')
       .on(
@@ -84,9 +80,7 @@ const Dashboard = () => {
         (payload) => {
           console.log('Evento real-time recebido:', payload.eventType, payload);
           
-          // Atualizar a lista de turnos com base no tipo de evento
           if (payload.eventType === 'DELETE') {
-            // Remove o turno excluído da lista
             const deletedId = payload.old?.id;
             if (deletedId) {
               setShifts(currentShifts => 
@@ -94,14 +88,12 @@ const Dashboard = () => {
               );
             }
           } else {
-            // Para INSERT ou UPDATE, buscar todos os turnos novamente
             fetchShifts();
           }
         }
       )
       .subscribe();
 
-    // Limpar subscription quando componente desmontar
     return () => {
       supabase.removeChannel(channel);
     };
@@ -109,7 +101,6 @@ const Dashboard = () => {
 
   const handleDeleteShift = async (shiftId: string) => {
     try {
-      // Executar a exclusão no Supabase
       const { error } = await supabase
         .from('turnos_administradores')
         .delete()
@@ -117,7 +108,6 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // Atualizar o estado local imediatamente após a exclusão bem-sucedida
       setShifts(currentShifts => currentShifts.filter(shift => shift.id !== shiftId));
       
       toast({
@@ -131,6 +121,30 @@ const Dashboard = () => {
         description: "Não foi possível excluir o turno. Tente novamente.",
       });
       console.error('Error deleting shift:', error);
+    }
+  };
+
+  const handleClearAllShifts = async () => {
+    try {
+      const { error } = await supabase
+        .from('turnos_administradores')
+        .delete()
+        .neq('id', '');
+
+      if (error) throw error;
+
+      setShifts([]);
+      toast({
+        title: "Turnos limpos",
+        description: "Todos os registros foram removidos com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao limpar turnos",
+        description: "Não foi possível remover os registros. Tente novamente.",
+      });
+      console.error('Error clearing shifts:', error);
     }
   };
 
@@ -172,9 +186,19 @@ const Dashboard = () => {
       <div className="flex flex-col space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h2 className="text-xl md:text-2xl font-bold text-yellow-500">Dashboard de Turnos</h2>
-          <Badge variant="outline" className="text-yellow-500 border-yellow-500/50 self-start md:self-auto">
-            {filteredShifts.length} turnos registrados
-          </Badge>
+          <div className="flex items-center gap-4">
+            <Badge variant="outline" className="text-yellow-500 border-yellow-500/50 self-start md:self-auto">
+              {filteredShifts.length} turnos registrados
+            </Badge>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleClearAllShifts}
+              className="self-start md:self-auto"
+            >
+              Limpar Tudo
+            </Button>
+          </div>
         </div>
 
         <div className="w-full">
