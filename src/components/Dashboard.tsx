@@ -182,23 +182,20 @@ const Dashboard = () => {
   );
 
   return (
-    <Card className="p-4 md:p-6 bg-gray-800/50 border-gray-700">
-      <div className="flex flex-col space-y-4">
+    <Card className="relative p-4 md:p-6 bg-gray-800/50 border-gray-700 overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none opacity-5">
+        <img
+          src="/lovable-uploads/d35616df-35b4-489a-9f90-7fbaf77c61c3.png"
+          alt="Rio Rise Logo"
+          className="w-full h-full object-contain"
+        />
+      </div>
+      <div className="flex flex-col space-y-4 relative z-10">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h2 className="text-xl md:text-2xl font-bold text-yellow-500">Dashboard de Turnos</h2>
-          <div className="flex items-center gap-4">
-            <Badge variant="outline" className="text-yellow-500 border-yellow-500/50 self-start md:self-auto">
-              {filteredShifts.length} turnos registrados
-            </Badge>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleClearAllShifts}
-              className="self-start md:self-auto"
-            >
-              Limpar Tudo
-            </Button>
-          </div>
+          <Badge variant="outline" className="text-yellow-500 border-yellow-500/50 self-start md:self-auto">
+            {filteredShifts.length} turnos registrados
+          </Badge>
         </div>
 
         <div className="w-full">
