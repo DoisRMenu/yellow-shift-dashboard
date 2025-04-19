@@ -17,14 +17,14 @@ export function MainSidebar() {
     <Sidebar>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Servidor 10</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-yellow-500">Servidor 10</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Sistema de Ponto">
+                <SidebarMenuButton asChild tooltip="Sistema de Ponto" className="h-12">
                   <Link to="/">
-                    <Clock className="h-4 w-4" />
-                    <span>Sistema de Ponto</span>
+                    <Clock className="h-5 w-5" />
+                    <span className="text-base">Sistema de Ponto</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

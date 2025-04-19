@@ -118,20 +118,20 @@ const ShiftForm = () => {
 
   if (activeShift) {
     return (
-      <Card className="p-6 bg-gray-800/50 border-gray-700">
+      <Card className="p-4 md:p-6 bg-gray-800/50 border-gray-700">
         <div className="flex flex-col space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h3 className="text-lg font-medium">{activeShift.nome_personagem}</h3>
               <p className="text-sm text-gray-400">{activeShift.cargo}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handlePauseShift}
                 disabled={loading}
-                className="gap-2"
+                className="gap-2 h-10 min-w-[120px] justify-center"
               >
                 {activeShift.status_turno === 'pausado' ? (
                   <>
@@ -150,7 +150,7 @@ const ShiftForm = () => {
                 size="sm"
                 onClick={handleEndShift}
                 disabled={loading}
-                className="gap-2"
+                className="gap-2 h-10 min-w-[120px] justify-center"
               >
                 <StopCircle className="h-4 w-4" />
                 Encerrar
@@ -164,17 +164,17 @@ const ShiftForm = () => {
 
   return (
     <form onSubmit={handleStartShift} className="space-y-6 w-full max-w-md mx-auto">
-      <Card className="p-6 bg-gray-800/50 border-gray-700">
+      <Card className="p-4 md:p-6 bg-gray-800/50 border-gray-700">
         <div className="space-y-4">
           <Input
             placeholder="Nome do Personagem"
             value={nome}
             onChange={(e) => setNome(e.target.value)}
-            className="bg-gray-800 border-gray-700"
+            className="w-full bg-gray-800 border-gray-700 h-12"
           />
           
           <Select value={cargo} onValueChange={setCargo}>
-            <SelectTrigger className="bg-gray-800 border-gray-700">
+            <SelectTrigger className="w-full bg-gray-800 border-gray-700 h-12">
               <SelectValue placeholder="Selecione o cargo" />
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700">
@@ -186,7 +186,7 @@ const ShiftForm = () => {
           <Button 
             type="submit" 
             disabled={loading}
-            className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black"
+            className="w-full h-12 text-base bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black"
           >
             {loading ? "Iniciando..." : "Iniciar Turno"}
           </Button>

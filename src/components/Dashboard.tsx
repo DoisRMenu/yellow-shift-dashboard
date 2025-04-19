@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+import DashboardMobileCard from "./DashboardMobileCard";
 
 type Shift = {
   id: string;
@@ -35,6 +37,7 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentTime, setCurrentTime] = useState(new Date());
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -174,53 +177,69 @@ const Dashboard = () => {
           </Badge>
         </div>
 
-        <div className="w-full md:max-w-sm">
+        <div className="w-full">
           <Input
             placeholder="Pesquisar por nome..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400"
+            className="w-full bg-gray-700/50 border-gray-600 text-white placeholder:text-gray-400"
           />
         </div>
         
-        <div className="overflow-x-auto rounded-lg border border-gray-700">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-700 hover:bg-transparent">
-                <TableHead className="text-yellow-500">Nome</TableHead>
-                <TableHead className="text-yellow-500 hidden md:table-cell">Cargo</TableHead>
-                <TableHead className="text-yellow-500">Início</TableHead>
-                <TableHead className="text-yellow-500">Status</TableHead>
-                <TableHead className="text-yellow-500 text-right hidden md:table-cell">Duração</TableHead>
-                <TableHead className="text-yellow-500 w-[60px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredShifts.map((shift) => (
-                <TableRow key={shift.id} className="border-gray-700">
-                  <TableCell className="font-medium text-white">{shift.nome_personagem}</TableCell>
-                  <TableCell className="text-white hidden md:table-cell">{shift.cargo}</TableCell>
-                  <TableCell className="text-white">{formatDateTime(shift.inicio_turno)}</TableCell>
-                  <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
-                  <TableCell className="text-right text-white hidden md:table-cell">
-                    {calculateDuration(shift.inicio_turno, shift.fim_turno)}
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteShift(shift.id)}
-                      className="hover:bg-red-500/20 hover:text-red-500"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      <span className="sr-only">Excluir turno</span>
-                    </Button>
-                  </TableCell>
+        {isMobile ? (
+          <div className="mt-4">
+            {filteredShifts.map((shift) => (
+              <DashboardMobileCard
+                key={shift.id}
+                shift={shift}
+                currentTime={currentTime}
+                onDelete={handleDeleteShift}
+                formatDateTime={formatDateTime}
+                getStatusBadge={getStatusBadge}
+                calculateDuration={calculateDuration}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-gray-700">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-gray-700 hover:bg-transparent">
+                  <TableHead className="text-yellow-500">Nome</TableHead>
+                  <TableHead className="text-yellow-500 hidden md:table-cell">Cargo</TableHead>
+                  <TableHead className="text-yellow-500">Início</TableHead>
+                  <TableHead className="text-yellow-500">Status</TableHead>
+                  <TableHead className="text-yellow-500 text-right hidden md:table-cell">Duração</TableHead>
+                  <TableHead className="text-yellow-500 w-[60px]">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {filteredShifts.map((shift) => (
+                  <TableRow key={shift.id} className="border-gray-700">
+                    <TableCell className="font-medium text-white">{shift.nome_personagem}</TableCell>
+                    <TableCell className="text-white hidden md:table-cell">{shift.cargo}</TableCell>
+                    <TableCell className="text-white">{formatDateTime(shift.inicio_turno)}</TableCell>
+                    <TableCell>{getStatusBadge(shift.status_turno)}</TableCell>
+                    <TableCell className="text-right text-white hidden md:table-cell">
+                      {calculateDuration(shift.inicio_turno, shift.fim_turno)}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteShift(shift.id)}
+                        className="hover:bg-red-500/20 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Excluir turno</span>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
       </div>
     </Card>
   );
